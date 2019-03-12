@@ -39,7 +39,7 @@ class CheckerQueue(object):
         yield self.env.timeout(checkerTime)
 
 
-def passenger(env, name, serverQueue, checkerQueue):
+def passengerInBoardingPassIdQueue(env, name, serverQueue):
     # passenger arrives
     enterSystemTime = env.now
     print('%s arrives at the airport at %.2f.' % (name, enterSystemTime))
@@ -55,11 +55,12 @@ def passenger(env, name, serverQueue, checkerQueue):
         yield env.process(serverQueue.serve())
         print('%s leaves the ID/boarding pass queue at %.2f.' % (name, env.now))
 
+
+def passengerInPersonalCheckQueue(env, name, checkerQueue):
     # passenger enter personal-check queue
     with checkerQueue.machine.request() as requestForChecker:
         startWaitingForChecker = env.now
         yield requestForChecker
-        print(requestForChecker)
 
         waitTimeForChecker = env.now - startWaitingForChecker
         averageCheckTime.append(waitTimeForChecker)
@@ -67,10 +68,10 @@ def passenger(env, name, serverQueue, checkerQueue):
         yield env.process(checkerQueue.check())
         print('%s leaves the personal-check queue at %.2f.' % (name, env.now))
 
-    averageTotalWaitTime.append(waitTimeForServer + waitTimeForChecker)
+    # averageTotalWaitTime.append(waitTimeForServer + waitTimeForChecker)
     exitSystemTime = env.now
     print('%s departs the airport at %.2f.' % (name, exitSystemTime))
-    averageSystemTime.append(exitSystemTime - enterSystemTime)
+    # averageSystemTime.append(exitSystemTime - enterSystemTime)
 
 
 def startSimulation(env, numServers, numCheckers):
@@ -80,7 +81,8 @@ def startSimulation(env, numServers, numCheckers):
 
     # Create initial passengers
     for i in range(10):
-        env.process(passenger(env, 'Passenger %d' % i, serverQueue, checkerQueue))
+        env.process(passengerInBoardingPassIdQueue(env, 'Passenger %d' % i, serverQueue))
+        env.process(passengerInPersonalCheckQueue(env, 'Passenger %d' % i, checkerQueue))
 
     # Create more passengers while the simulation is running
     arrivalNumber = 0
@@ -91,8 +93,8 @@ def startSimulation(env, numServers, numCheckers):
         # arriving passengers
         for i in range(ARRIVAL_RATE_LAMBDA):
             arrivalNumber += 1
-            env.process(passenger(env, 'Passenger %d' % arrivalNumber, serverQueue, checkerQueue))
-
+            env.process(passengerInBoardingPassIdQueue(env, 'Passenger %d' % arrivalNumber, serverQueue))
+            env.process(passengerInPersonalCheckQueue(env, 'Passenger %d' % arrivalNumber, checkerQueue))
 
 # Setup and start the simulation
 random.seed(7)
@@ -106,5 +108,5 @@ env.run(until=SIM_RUN_TIME)
 print("\n")
 print('avg wait in serve queue', np.mean(averageServeTime))
 print('avg wait in check queue', np.mean(averageCheckTime))
-print('avg total wait time', np.mean(averageTotalWaitTime))
-print('avg time in system', np.mean(averageSystemTime))
+# print('avg total wait time', np.mean(averageTotalWaitTime))
+# print('avg time in system', np.mean(averageSystemTime))
