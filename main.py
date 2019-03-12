@@ -48,12 +48,14 @@ def passengerInBoardingPassIdQueue(env, name, serverQueue):
     with serverQueue.machine.request() as requestForServer:
         startWaitingForServer = env.now
         yield requestForServer
-
         waitTimeForServer = env.now - startWaitingForServer
         averageServeTime.append(waitTimeForServer)
+
         print('%s enters the ID/boarding pass queue at %.2f.' % (name, env.now))
         yield env.process(serverQueue.serve())
         print('%s leaves the ID/boarding pass queue at %.2f.' % (name, env.now))
+
+    return waitTimeForServer
 
 
 def passengerInPersonalCheckQueue(env, name, checkerQueue):
@@ -61,17 +63,14 @@ def passengerInPersonalCheckQueue(env, name, checkerQueue):
     with checkerQueue.machine.request() as requestForChecker:
         startWaitingForChecker = env.now
         yield requestForChecker
-
         waitTimeForChecker = env.now - startWaitingForChecker
         averageCheckTime.append(waitTimeForChecker)
+
         print('%s enters the personal-check queue at %.2f.' % (name, env.now))
         yield env.process(checkerQueue.check())
         print('%s leaves the personal-check queue at %.2f.' % (name, env.now))
 
-    # averageTotalWaitTime.append(waitTimeForServer + waitTimeForChecker)
-    exitSystemTime = env.now
-    print('%s departs the airport at %.2f.' % (name, exitSystemTime))
-    # averageSystemTime.append(exitSystemTime - enterSystemTime)
+    return waitTimeForChecker
 
 
 def startSimulation(env, numServers, numCheckers):
@@ -79,8 +78,8 @@ def startSimulation(env, numServers, numCheckers):
     serverQueue = ServerQueue(env, numServers)
     checkerQueue = CheckerQueue(env, numCheckers)
 
-    # Create initial passengers
-    for i in range(10):
+    # Create 5 initial passengers at time 0
+    for i in range(5):
         env.process(passengerInBoardingPassIdQueue(env, 'Passenger %d' % i, serverQueue))
         env.process(passengerInPersonalCheckQueue(env, 'Passenger %d' % i, checkerQueue))
 
@@ -95,6 +94,7 @@ def startSimulation(env, numServers, numCheckers):
             arrivalNumber += 1
             env.process(passengerInBoardingPassIdQueue(env, 'Passenger %d' % arrivalNumber, serverQueue))
             env.process(passengerInPersonalCheckQueue(env, 'Passenger %d' % arrivalNumber, checkerQueue))
+
 
 # Setup and start the simulation
 random.seed(7)
